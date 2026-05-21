@@ -10,6 +10,7 @@ RUN chmod +x /usr/bin/nginx.sh
 
 EXPOSE 443
 
-
 ENTRYPOINT [ "nginx.sh" ]
+
+CMD ["nginx" , "-g",  "daemon off;" ]
 
