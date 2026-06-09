@@ -1,8 +1,8 @@
 services:
   mariadb:
     build:
-      context: .
-      dockerfile: requirements/mariadb/dockerfile
+      context: requirements/mariadb
+      dockerfile: Dockerfile
     container_name: mariadb
     restart: always
     environment:
@@ -10,12 +10,82 @@ services:
       MYSQL_USER: ${MYSQL_USER}
     secrets:
       - db_root_password
-      - db_password 
+      - db_password
     volumes:
-      - mariadb_data:/var/lib/mysql 
+      - mariadb_data:/var/lib/mysql
     networks:
       - inception_network
     expose:
-      - 3306
+      - "3306"
+
   wordpress:
-    
+    build:
+      context: requirements/wordpress
+      dockerfile: Dockerfile
+    container_name: wordpress
+    restart: always
+    depends_on:
+      - mariadb
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      DOMAIN_NAME: ${DOMAIN_NAME}
+      WORDPRESS_TITLE: ${WORDPRESS_TITLE}
+      WP_ADMIN_USER: ${WP_ADMIN_USER}
+      WP_ADMIN_EMAIL: ${WP_ADMIN_EMAIL}
+      WP_USER: ${WP_USER}
+      WP_EMAIL: ${WP_EMAIL}
+    secrets:
+      - db_password
+      - wordpress_admin_password
+      - wordpress_password
+    volumes:
+      - wordpress_data:/var/www/html
+    networks:
+      - inception_network
+    expose:
+      - "9000"
+
+  nginx:
+    build:
+      context: requirements/nginx
+      dockerfile: Dockerfile
+    container_name: nginx
+    restart: always
+    depends_on:
+      - wordpress
+    volumes:
+      - wordpress_data:/var/www/html
+    ports:
+      - "443:443"
+    networks:
+      - inception_network
+
+volumes:
+  mariadb_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/${USER}/data/mariadb
+
+  wordpress_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/${USER}/data/wordpress
+
+secrets:
+  db_root_password:
+    file: secrets/db_root_password.txt
+  db_password:
+    file: secrets/db_password.txt
+  wordpress_admin_password:
+    file: secrets/wordpress_admin_password.txt
+  wordpress_password:
+    file: secrets/wordpress_password.txt
+
+networks:
+  inception_network:
+    driver: bridge

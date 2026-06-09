@@ -1,0 +1,317 @@
+services:
+  mariadb:
+    build:
+      context: requirements/mariadb
+      dockerfile: Dockerfile
+    container_name: mariadb
+    restart: always
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+    secrets:
+      - db_root_password
+      - db_password
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    networks:
+      - inception_network
+    expose:
+      - "3306"
+
+  wordpress:
+    build:
+      context: requirements/wordpress
+      dockerfile: Dockerfile
+    container_name: wordpress
+    restart: always
+    depends_on:
+      - mariadb
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      DOMAIN_NAME: ${DOMAIN_NAME}
+      WORDPRESS_TITLE: ${WORDPRESS_TITLE}
+      WP_ADMIN_USER: ${WP_ADMIN_USER}
+      WP_ADMIN_EMAIL: ${WP_ADMIN_EMAIL}
+      WP_USER: ${WP_USER}
+      WP_EMAIL: ${WP_EMAIL}
+    secrets:
+      - db_password
+      - wordpress_admin_password
+      - wordpress_password
+    volumes:
+      - wordpress_data:/var/www/html
+    networks:
+      - inception_network
+    expose:
+      - "9000"
+
+  nginx:
+    build:
+      context: requirements/nginx
+      dockerfile: Dockerfile
+    container_name: nginx
+    restart: always
+    depends_on:
+      - wordpress
+    volumes:
+      - wordpress_data:/var/www/html
+    ports:
+      - "443:443"
+    networks:
+      - inception_network
+
+volumes:
+  mariadb_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/${USER}/data/mariadb
+
+  wordpress_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/${USER}/data/wordpress
+
+secrets:
+  db_root_password:
+    file: secrets/db_root_password.txt
+  db_password:
+    file: secrets/db_password.txt
+  wordpress_admin_password:
+    file: secrets/wordpress_admin_password.txt
+  wordpress_password:
+    file: secrets/wordpress_password.txt
+
+networks:
+  inception_network:
+    driver: bridgeyour_root_password_here
+your_wp_user_password_here
+your_wp_admin_password_here
+your_db_password_here
+DOMAIN_NAME=aayad.42.fr
+
+WORDPRESS_TITLE=inception
+
+MYSQL_DATABASE=wordpress
+
+MYSQL_USER=aayad_user
+
+WP_ADMIN_USER=aayad_admin
+
+WP_ADMIN_EMAIL=aayad.admin@student.42.fr
+
+WP_USER=abdellah
+
+WP_EMAIL=abdellah@student.42.fr
+
+FTP_USER=aayad_ftp
+
+FROM debian:bullseye
+
+RUN apt-get update && apt-get upgrade -y && apt-get install -y \
+    php7.4-fpm \
+    php7.4-mysql \
+    mariadb-client \
+    curl \
+    wget \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \
+    && chmod +x wp-cli.phar \
+    && mv wp-cli.phar /usr/local/bin/wp
+
+COPY conf/www.conf /etc/php/7.4/fpm/pool.d/www.conf
+
+COPY tools/wordpress.sh /usr/local/bin/wordpress.sh
+RUN chmod +x /usr/local/bin/wordpress.sh  
+
+RUN mkdir -p /run/php && mkdir -p /var/www/html \
+    && chown -R www-data:www-data /var/www/html
+
+WORKDIR /var/www/html
+
+EXPOSE 9000
+
+ENTRYPOINT [ "/usr/local/bin/wordpress.sh" ]
+CMD [ "/usr/sbin/php-fpm7.4", "--nodaemonize" ]#!/bin/bash
+set -e
+
+echo "[INFO] Starting WordPress Setup Script..."
+
+cd /var/www/html
+
+until mysqladmin ping -h"mariadb" --silent; do
+    echo "[INFO] Waiting for MariaDB database to be ready..."
+    sleep 3
+done
+
+if [ ! -f "wp-config.php" ]; then
+    echo "[INFO] WordPress config not found. Setting up..."
+
+    if [ ! -f "index.php" ]; then
+        echo "[INFO] Downloading core files..."
+        wp core download --allow-root
+    fi
+
+    echo "[INFO] Creating wp-config.php..."
+    wp config create \
+        --dbname=$MYSQL_DATABASE \
+        --dbuser=$MYSQL_USER \
+        --dbpass=$(cat /run/secrets/db_password) \
+        --dbhost=mariadb:3306 \
+        --allow-root
+
+    echo "[INFO] Installing WordPress..."
+    wp core install \
+        --url=$DOMAIN_NAME \
+        --title="$WORDPRESS_TITLE" \
+        --admin_user=$WP_ADMIN_USER \
+        --admin_password=$(cat /run/secrets/wordpress_admin_password) \
+        --admin_email=$WP_ADMIN_EMAIL \
+        --skip-email \
+        --allow-root
+
+    echo "[INFO] Creating secondary WordPress user..."
+    wp user create \
+        $WP_USER \
+        $WP_EMAIL \
+        --user_pass=$(cat /run/secrets/wordpress_password) \
+        --role=author \
+        --allow-root
+        
+    echo "[INFO] WordPress installation completed successfully!"
+else
+    echo "[INFO] WordPress is already configured and installed."
+fi
+
+echo "[INFO] Starting PHP-FPM..."
+exec /usr/sbin/php-fpm7.4 --nodaemonize[www]
+
+user = www-data
+group = www-data
+
+listen = 0.0.0.0:9000
+
+listen.owner = www-data
+listen.group = www-data
+
+pm = dynamic
+
+pm.max_children = 5
+
+pm.start_servers = 2
+pm.min_spare_servers = 1
+pm.max_spare_servers = 3
+
+clear_env = no
+
+FROM debian:bullseye
+
+RUN apt-get update && apt-get upgrade -y && apt-get install -y nginx openssl
+
+COPY conf/nginx.conf /etc/nginx/sites-available/default
+
+COPY tools/nginx.sh /usr/bin/nginx.sh
+RUN chmod +x /usr/bin/nginx.sh
+
+EXPOSE 443
+
+ENTRYPOINT [ "/usr/bin/nginx.sh" ]
+
+CMD [ "nginx", "-g", "daemon off;" ]#!/bin/sh
+
+set -e
+
+mkdir -p /etc/nginx/ssl
+
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    -keyout /etc/nginx/ssl/nginx.key \
+    -out /etc/nginx/ssl/nginx.crt \
+    -subj "/CN=${DOMAIN_NAME}" >/dev/null 2>/dev/null
+
+exec "$@"server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+
+    server_name aayad.42.fr;
+
+    ssl_certificate     /etc/nginx/ssl/nginx.crt;
+    ssl_certificate_key /etc/nginx/ssl/nginx.key;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+
+    root /var/www/html;
+    index index.php index.html;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    location ~ \.php$ {
+        include fastcgi_params;
+        fastcgi_pass wordpress:9000;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    }
+}FROM debian:bullseye
+
+RUN apt-get update && apt-get upgrade -y && apt-get install -y \
+    mariadb-server \
+    && rm -rf /var/lib/apt/lists/*
+    
+COPY conf/mariadb.conf /etc/mysql/mariadb.conf.d/50-server.cnf
+
+COPY tools/mariadb.sh /usr/local/bin/mariadb.sh
+RUN chmod +x /usr/local/bin/mariadb.sh
+
+EXPOSE 3306
+
+ENTRYPOINT [ "/bin/bash", "/usr/local/bin/mariadb.sh" ]#!/bin/bash
+set -e
+
+mkdir -p /var/run/mysqld
+chown -R mysql:mysql /var/run/mysqld
+chmod 777 /var/run/mysqld
+
+if [ ! -d "/var/lib/mysql/mysql" ]; then
+    echo "[INFO] Initializing MariaDB database..."
+    mysql_install_db --user=mysql --datadir=/var/lib/mysql
+
+    mysqld --user=mysql --datadir=/var/lib/mysql --skip-networking &
+    pid="$!"
+
+    until mysqladmin ping --silent; do
+        echo "[INFO] Waiting for temporary MariaDB instance..."
+        sleep 1
+    done
+
+    mysql -u root << EOF
+FLUSH PRIVILEGES;
+CREATE DATABASE IF NOT EXISTS \`${MYSQL_DATABASE}\`;
+CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'%' IDENTIFIED BY '$(cat /run/secrets/db_password)';
+GRANT ALL PRIVILEGES ON \`${MYSQL_DATABASE}\`.* TO '${MYSQL_USER}'@'%';
+ALTER USER 'root'@'localhost' IDENTIFIED BY '$(cat /run/secrets/db_root_password)';
+FLUSH PRIVILEGES;
+EOF
+
+    kill -s TERM "$pid"
+    wait "$pid"
+fi
+
+echo "[INFO] Starting MariaDB normally..."
+exec mysqld --user=mysql --datadir=/var/lib/mysql[mysqld]
+
+user = mysql
+
+pid-file = /var/run/mysqld/mysqld.pid
+
+socket = /var/run/mysqld/mysqld.sock
+
+port = 3306
+
+datadir = /var/lib/mysql
+
+bind-address = 0.0.0.0
