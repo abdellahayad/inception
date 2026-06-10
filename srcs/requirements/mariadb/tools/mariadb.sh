@@ -1,33 +1,26 @@
 #!/bin/bash
-set -e
+set -e 
 
 mkdir -p /var/run/mysqld
 chown -R mysql:mysql /var/run/mysqld
-chmod 777 /var/run/mysqld
 
-if [ ! -d "/var/lib/mysql/mysql" ]; then
-    echo "[INFO] Initializing MariaDB database..."
-    mysql_install_db --user=mysql --datadir=/var/lib/mysql
+if [ ! -d "/var/lib/mysql/$MYSQL_DATABASE" ]; then
+    echo "Initializing MariaDB..."
 
-    mysqld --user=mysql --datadir=/var/lib/mysql --skip-networking --skip-grant-tables &
-    pid="$!"
+    export MYSQL_ROOT_PASSWORD=$(cat /run/secrets/db_root_password)
+    export MYSQL_PASSWORD=$(cat /run/secrets/db_password)
 
-    until mysqladmin ping --silent; do
-        sleep 1
-    done
+    mariadb-install-db --user=mysql --datadir=/var/lib/mysql > /dev/null
 
-    mysql -u root << EOF
+    mariadbd --user=mysql --bootstrap << EOF
 FLUSH PRIVILEGES;
-CREATE DATABASE IF NOT EXISTS \`${MYSQL_DATABASE}\`;
-CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'%' IDENTIFIED BY '$(cat /run/secrets/db_password)';
-GRANT ALL PRIVILEGES ON \`${MYSQL_DATABASE}\`.* TO '${MYSQL_USER}'@'%';
-ALTER USER 'root'@'localhost' IDENTIFIED BY '$(cat /run/secrets/db_root_password)';
+CREATE DATABASE IF NOT EXISTS \`$MYSQL_DATABASE\`;
+CREATE USER IF NOT EXISTS '$MYSQL_USER'@'%' IDENTIFIED BY '$MYSQL_PASSWORD';
+GRANT ALL PRIVILEGES ON \`$MYSQL_DATABASE\`.* TO '$MYSQL_USER'@'%';
+ALTER USER 'root'@'localhost' IDENTIFIED BY '$MYSQL_ROOT_PASSWORD';
 FLUSH PRIVILEGES;
 EOF
-
-    kill -s TERM "$pid"
-    wait "$pid"
+    echo "MariaDB initialized!"
 fi
 
-echo "[INFO] Starting MariaDB normally..."
-exec mysqld --user=mysql --datadir=/var/lib/mysql
+exec mariadbd -u mysql
