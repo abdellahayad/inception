@@ -9,11 +9,10 @@ if [ ! -d "/var/lib/mysql/mysql" ]; then
     echo "[INFO] Initializing MariaDB database..."
     mysql_install_db --user=mysql --datadir=/var/lib/mysql
 
-    mysqld --user=mysql --datadir=/var/lib/mysql --skip-networking &
+    mysqld --user=mysql --datadir=/var/lib/mysql --skip-networking --skip-grant-tables &
     pid="$!"
 
     until mysqladmin ping --silent; do
-        echo "[INFO] Waiting for temporary MariaDB instance..."
         sleep 1
     done
 
