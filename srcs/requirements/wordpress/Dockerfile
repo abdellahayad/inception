@@ -5,7 +5,6 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     php7.4-mysql \
     mariadb-client \
     curl \
-    wget \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \
