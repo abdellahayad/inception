@@ -1,24 +1,25 @@
 #!/bin/bash
+
 set -e
 
-echo "[INFO] Starting WordPress Setup Script..."
+echo "[INFO] starting wordPress setup script..."
 
 cd /var/www/html
 
 until mysqladmin ping -h"mariadb" --silent; do
-    echo "[INFO] Waiting for MariaDB database to be ready..."
+    echo "[INFO] waiting for mariaDB database to be ready..."
     sleep 3
 done
 
-if [ ! -f "wp-config.php" ]; then
-    echo "[INFO] WordPress config not found. Setting up..."
+if ! wp core is-installed --allow-root &>/dev/null; then
+    echo "[INFO] wordPress config not found. setting up..."
 
     if [ ! -f "index.php" ]; then
-        echo "[INFO] Downloading core files..."
+        echo "[INFO] downloading core files..."
         wp core download --allow-root
     fi
 
-    echo "[INFO] Creating wp-config.php..."
+    echo "[INFO] creating wp-config.php...."
     wp config create \
         --dbname=$MYSQL_DATABASE \
         --dbuser=$MYSQL_USER \
@@ -26,7 +27,7 @@ if [ ! -f "wp-config.php" ]; then
         --dbhost=mariadb:3306 \
         --allow-root
 
-    echo "[INFO] Installing WordPress..."
+    echo "[INFO] installing wordPress..."
     wp core install \
         --url=$DOMAIN_NAME \
         --title="$WORDPRESS_TITLE" \
@@ -36,7 +37,7 @@ if [ ! -f "wp-config.php" ]; then
         --skip-email \
         --allow-root
 
-    echo "[INFO] Creating secondary WordPress user..."
+    echo "[INFO] creating secondary WordPress user...."
     wp user create \
         $WP_USER \
         $WP_EMAIL \
@@ -44,7 +45,7 @@ if [ ! -f "wp-config.php" ]; then
         --role=author \
         --allow-root
         
-    echo "[INFO] WordPress installation completed successfully!"
+    echo "[INFO] wordPress installation completed successfully!"
 else
     echo "[INFO] WordPress is already configured and installed."
 fi

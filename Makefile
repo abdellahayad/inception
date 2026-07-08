@@ -13,7 +13,7 @@ down:
 
 clean:
 	@docker compose -f srcs/docker-compose.yml down --volumes --rmi all
-	@rm -rf $(DATA_PATH)
+	@sudo rm -rf $(DATA_PATH)
 
 fclean: clean
 	@docker system prune -a --volumes -f
