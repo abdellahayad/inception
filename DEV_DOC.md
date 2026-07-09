@@ -67,12 +67,12 @@ docker compose -f srcs/docker-compose.yml down --volumes
 
 ## Data Storage And Persistence
 
-Persistent data is stored on the host machine through bind-mounted Docker volumes:
+Persistent data is stored on the host machine through Docker volumes:
 
 * MariaDB data is stored in `/home/aayad/data/mariadb`
 * WordPress files are stored in `/home/aayad/data/wordpress`
 
-These paths are created automatically by the Makefile before the stack starts. Because they are bind mounts, the database and website files survive container recreation and restarts.
+These paths are created automatically by the Makefile before the stack starts.
 
 The corresponding Docker volume definitions are named `mariadb_data` and `wordpress_data` in `srcs/docker-compose.yml`.
 
