@@ -128,6 +128,7 @@ make re
 *AI was used to:*
 - **Learning & Conceptual Understanding:** Used to ask questions and learn low-level concepts regarding container isolation, network bridging, and volume persistence.
 - **Debugging & Troubleshooting:** Assisted in debugging configuration anomalies within the custom NGINX setups, MariaDB installation scripts, and system behavior.
+- **Documentation Support:** Used AI to improve the clarity, grammar, and structure of the project documentation, including this README.
 
 # Project Description
 
