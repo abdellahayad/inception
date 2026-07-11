@@ -46,25 +46,25 @@ cd inception
 Create the secret files inside the `secrets/` directory:
 
 ```bash
-echo "db_password" > secrets/db_password.txt
-echo "db_root_password" > secrets/db_root_password.txt
-echo "wp_admin_password" > secrets/wordpress_admin_password.txt
-echo "wp_user_password" > secrets/wordpress_password.txt
+echo "your_db_password" > secrets/db_password.txt
+echo "your_db_root_password" > secrets/db_root_password.txt
+echo "your_wp_admin_password" > secrets/wordpress_admin_password.txt
+echo "your_wp_user_password" > secrets/wordpress_password.txt
 ```
 
 ### 3. Create the environment file
 
-Create a `.env` file inside the `srcs/` directory:
+Create a `.env` file inside the `srcs/` directory like this example :
 
 ```env
-DOMAIN_NAME=aayad.42.fr
+DOMAIN_NAME=user.42.fr
 WORDPRESS_TITLE=inception
 MYSQL_DATABASE=wordpress
-MYSQL_USER=aayad_user
-WP_ADMIN_USER=aayad
-WP_ADMIN_EMAIL=aayad.abdo@student.42.fr
+MYSQL_USER=user_user
+WP_ADMIN_USER=user
+WP_ADMIN_EMAIL=user.abdo@student.42.fr
 WP_USER=abdellah
-WP_EMAIL=abdellah@student.42.fr
+WP_EMAIL=example@student.42.fr
 ```
 
 ---
@@ -228,6 +228,7 @@ The project includes:
 │       ├── wordpress_admin_password.txt
 │       └── wordpress_password.txt
 └── USER_DOC.md
+└── DEV_DOC.md
 
 133 directories, 188 files
 ```

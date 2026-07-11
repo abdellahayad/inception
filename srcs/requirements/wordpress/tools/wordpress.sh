@@ -19,7 +19,7 @@ if ! wp core is-installed --allow-root &>/dev/null; then
         wp core download --allow-root
     fi
 
-    echo "[INFO] creating wp-config.php...."
+    echo "[INFO] creating wp-config.php...."//
     wp config create \
         --dbname=$MYSQL_DATABASE \
         --dbuser=$MYSQL_USER \
@@ -50,5 +50,7 @@ else
     echo "[INFO] WordPress is already configured and installed."
 fi
 
+chown -R www-data:www-data /var/www/html
+
 echo "[INFO] Starting PHP-FPM..."
-exec /usr/sbin/php-fpm7.4 --nodaemonize
+exec /usr/sbin/php-fpm8.2 --nodaemonize
