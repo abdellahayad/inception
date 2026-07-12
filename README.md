@@ -1,4 +1,4 @@
-*This project has been created as part of the 42 curriculum by aayad.*
+*This project has been created as part of the 42 curriculum by aayad*
 
 # Description
 
@@ -54,7 +54,7 @@ echo "your_wp_user_password" > secrets/wordpress_password.txt
 
 ### 3. Create the environment file
 
-Create a `.env` file inside the `srcs/` directory like this example :
+Create a `.env` file inside the `srcs/` directory (replace the values by your data):
 
 ```env
 DOMAIN_NAME=user.42.fr
@@ -133,7 +133,7 @@ make re
 # Project Description
 
 
-This project uses **Docker** to run each service in its own container. Each container is built from a **Debian Bullseye** image and contains only the software it needs. This makes the project portable, reproducible, and easy to maintain.
+This project uses **Docker** to run each service in its own container. Each container is built from a **Debian bookworm** image and contains only the software it needs. This makes the project portable, reproducible, and easy to maintain.
 
 The project includes:
 
@@ -149,7 +149,7 @@ The project includes:
 | Design Choice | Description |
 |---------------|-------------|
 | One container per service | Each service runs independently, making it easier to manage and debug. |
-| Custom Docker images | Every service is built from a Debian Bullseye base image instead of using prebuilt images. |
+| Custom Docker images | Every service is built from a Debian bookworm base image instead of using prebuilt images. |
 | Bridge network | Services communicate through a private network isolated from the host. |
 | Docker secrets | Passwords and sensitive data are stored securely instead of hardcoding them. |
 | Docker volumes | Database and WordPress files are kept even if containers are removed. |
